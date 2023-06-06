@@ -452,16 +452,16 @@ $\Xi_{p+1} := \xi_0,...,\xi_p$, интерполяционный полином 
 %
 Уравнения, описывающие несжимаемые течения Ньютоновской жидкости с постоянными свойствами, имеют вид:
 %
-\begin{equation*}
+\begin{equation}\label{eq:ns}
     \frac{\partial \textbf{v}}{\partial t} = - \nabla p + \nu \textbf{L}(\textbf{v}) +
     \textbf{N}(\textbf{v}) \text{в} \Omega,
-\end{equation*}
+\end{equation}
 %
 и условие несжимаемости определяется как:
 %
-\begin{equation*}
+\begin{equation}\label{eq:cont}
     Q = \nabla \cdot \textbf{v} = 0 \text{в} \Omega.
-\end{equation*}
+\end{equation}
 %
 
 Здесь $\textbf{v}$ -- вектор скорости, $p$ -- давление, а кинематическая вязкость обозначается $\nabla$. 
@@ -469,19 +469,58 @@ $\Xi_{p+1} := \xi_0,...,\xi_p$, интерполяционный полином 
 Линейные и нелинейные операторы в уравнениях Навье-Стокса обозначаются как $\textbf{L}$ и $\textbf{N}$ 
 и определяются следующим образом:
 %
-\begin{equation*}
+\begin{equation}\label{eq:linear}
     \textbf{L} (\textbf{v}) = \nabla^2 \textbf{v} = \nabla(\nabla \cdot \textbf{v}) - 
     \nabla \times (\nabla \times \textbf{v}).
-\end{equation*}
+\end{equation}
 %
-\begin{equation*}
+\begin{equation}\label{eq:nonlin}
     \textbf{N} (\textbf{v}) = - \frac{1}{2}[\textbf{v} \cdot \nabla \textbf{v} + 
     \nabla (\textbf{v} \cdot \textbf{v})]. 
-\end{equation*}
+\end{equation}
 %
-
-
-
+Нелинейный оператор записан в кососимметричной форме, которая представляет собой 
+комбинацию конвективной и консервативной форм. 
+%
+Обратите внимание, что кососимметричная форма не используется в Nek5000, однако 
+было удобно использовать ее в конвективной формулировке. 
+%
+Описанные выше уравнения Навье-Стокса требуется дискретизировать как во времени, так и в пространстве. 
+%
+Рассмотрим на примере уравнения (\ref{eq:ns}) один проинтегрированный по времени шаг ($\Delta t$):
+%
+\begin{equation}\label{eq:tstep}
+    \textbf{v}^{n+1} - \textbf{v}^n = - \int^{t_{n+1}}_{t_n} \nabla p dt + 
+    \nu  \int^{t_{n+1}}_{t_n} \textbf{L} (\textbf{v}) dt + \int^{t_{n+1}}_{t_n} \textbf{N} (\textbf{v}) dt, 
+\end{equation}
+%
+где индекс $n$ обозначает шаг по времени $t_n = n \Delta t$.
+%
+Слагаемое с давлением запишем как:
+%
+\begin{equation}\label{eq:pres}
+    \int^{t_{n+1}}_{t_n} \nabla p dt = \Delta t \nabla \overline{p}^{n+1},
+\end{equation}        
+%
+где $\overline{p}^{n+1}$ -- скалярное поле, обеспечивающее несжимаемость итогового поля скорости 
+к концу временного шага $(n+1)$, иными словами обеспечивающее равенство нулю дивергенции скорости.
+%
+Нелинейный и линейный слагаемые апрроксимируются с помощью явной и неявной схемы, соответственно.
+%
+Первое аппроксимируется с помощью схемы Адамса-Башфорта порядка $J_e$,
+второе -- порядка $J_i$:
+%
+\begin{equation}\label{eq:pres}
+    \int^{t_{n+1}}_{t_n} \textbf{N} (\textbf{v}) dt = \Delta t \sum_{q=0}^{J_e - 1} \beta_q \textbf{N} (\textbf{v}^{n-q}) ,
+\end{equation}        
+%
+%
+\begin{equation}\label{eq:pres}
+    \int^{t_{n+1}}_{t_n} \textbf{L} (\textbf{v}) dt = \Delta t \sum_{q=0}^{J_i - 1} \gamma_q \textbf{L} (\textbf{v}^{n+1-q}) ,
+\end{equation}        
+%
+где $\beta_q$ и $\gamma_q$ -- это правильно выбранные веса для явной и неявной схемы, соответственно REF.
+%
 
 
 % % \chapter{Оформление различных элементов}\label{ch:ch1}
