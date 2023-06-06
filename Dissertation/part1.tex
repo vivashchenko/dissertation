@@ -510,17 +510,81 @@ $\Xi_{p+1} := \xi_0,...,\xi_p$, интерполяционный полином 
 Первое аппроксимируется с помощью схемы Адамса-Башфорта порядка $J_e$,
 второе -- порядка $J_i$:
 %
-\begin{equation}\label{eq:pres}
+\begin{equation}\label{eq:nln}
     \int^{t_{n+1}}_{t_n} \textbf{N} (\textbf{v}) dt = \Delta t \sum_{q=0}^{J_e - 1} \beta_q \textbf{N} (\textbf{v}^{n-q}) ,
 \end{equation}        
 %
 %
-\begin{equation}\label{eq:pres}
+\begin{equation}\label{eq:ln}
     \int^{t_{n+1}}_{t_n} \textbf{L} (\textbf{v}) dt = \Delta t \sum_{q=0}^{J_i - 1} \gamma_q \textbf{L} (\textbf{v}^{n+1-q}) ,
 \end{equation}        
 %
 где $\beta_q$ и $\gamma_q$ -- это правильно выбранные веса для явной и неявной схемы, соответственно REF.
 %
+Стоит отметить, что причина выбора неявной схемы для линейного слагаемого кроется в устойчивости схемы.
+%
+Также следует отметить, что левая часть уравнения (\ref{eq:tstep}) является примером метода первого порядка точности, 
+а для получения так называемой жестко устойчивой схемы мы используем метод более высокого порядка 
+для дискретизации $\partial v/\partial t$, который можно обобщить как:
+%
+%
+\begin{equation}\label{eq:der}
+    \frac{\partial \textbf{v}}{\partial t} = \frac{\gamma_0 \textbf{v}^{n+1} - \sum_{q=0}^{J_i-1}\alpha_q \textbf{v}^{n-q} }{\Delta t}
+\end{equation}        
+%
+где $\alpha_q$ -- это коэффициенты жестко устойчивой схемы порядка $J_i$. 
+%
+Что касается $\gamma_0$, то оно определяется как $\gamma_0 = \sum_{q=0}^{J_i-1} \alpha_q$.
+%
+Решение приведенной выше полудискретной системы (\ref{eq:tstep}) может быть получено 
+путем использования дискретизации, показанной в (\ref{eq:pres})-(\ref{eq:der}), 
+и разделения вычисления на три подэтапа, как это будет показано ниже.
+
+\section{Схема Карниадакиса}
+%
+
+Широко известная как формулировка $P_n-P_n$, схема Карниадакиса не обязательно применяется только  в методе 
+спектральных элементов, хотя первоначальной она была использована именно для него. 
+%
+По своей сути она просто разделяет давление и скорость друг от друга. 
+%
+Подставляя (\ref{eq:der}) и дискретизации линейного и нелинейного членов (\ref{eq:nln}-\ref{eq:ln}) 
+в (\ref{eq:ns}), приходим к следующей полудискретной системе:
+%
+%
+\begin{equation}\label{eq:sheme}
+    \frac{\gamma_0 \textbf{v}^{n+1} - \sum_{q=0}^{J_i-1}\alpha_q \textbf{v}^{n-q} }{\Delta t} =
+    - \nabla \overline{p}^{n+1} + \nu \sum_{q=0}^{J_i-1} \gamma_q \textbf{L}(\textbf{v}^{n+1-q}) +
+    \sum_{q=0}^{J_e-1} \beta_q \textbf{N}(\textbf{v}^{n-q})
+\end{equation}        
+%
+
+Для решения этой системы в схеме Карниадакиса делается три ``подшага'':
+%
+\begin{equation}\label{eq:ks1}
+    \frac{\Hat{\textbf{v}-\sum_{q=0}^{J_i-1}\alpha_q \textbf{v}^{n-q}} }{\Delta t} = \sum_{q=0}^{J_e-1}\beta_q \textbf{N}(\textbf{v}^{n-q}) \text{ в } \Omega
+\end{equation}        
+%
+%
+\begin{equation}\label{eq:ks2} 
+    \frac{\Hat{\Hat{\textbf{v}}}-\Hat{\textbf{v}}}{\Delta t} = -\nabla \overline{p}^{n+1} \text{ в } \Omega
+\end{equation}        
+%
+%
+\begin{equation}\label{eq:ks3} 
+    \frac{\gamma_0 \textbf{v}^{n+1} - \Hat{\Hat{\textbf{v}}}}{\Delta t} = \nu \nabla^2 \textbf{v}^{n+1} \text{ в } \Omega
+\end{equation}        
+%
+с граничными условиями Дирихле:
+%
+\begin{equation}\label{eq:ksbc} 
+    \textbf{v}^{n+1} = \overrightarrow{v}_0 \text{  на } \partial \Omega
+\end{equation}        
+%
+
+Однако в этой системе скорость и давление на временном шаге $n + 1$ все еще связаны. 
+%
+Далее используем условие несжимаемости для поля $\textbf{v}$:
 
 
 % % \chapter{Оформление различных элементов}\label{ch:ch1}
