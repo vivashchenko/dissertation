@@ -585,6 +585,116 @@ $\Xi_{p+1} := \xi_0,...,\xi_p$, интерполяционный полином 
 Однако в этой системе скорость и давление на временном шаге $n + 1$ все еще связаны. 
 %
 Далее используем условие несжимаемости для поля $\textbf{v}$:
+%
+\begin{equation}\label{eq:ksincomp} 
+    \nabla \cdot \textbf{v} = 0 \text{  в } \partial \Omega
+\end{equation}        
+%
+
+Взяв дивергенцию от уравнения (\ref{eq:sheme}), получаем следующее уравнение Пуассона для давления:
+%
+%
+\begin{equation}\label{eq:kspoisson} 
+    \nabla^2 \overline{p}^{n+1} = \nabla \cdot (\frac{\Hat{\textbf{v}}}{\Delta t}) +
+    \nu \sum_{q=0}^{J_i-1} \gamma_q \textbf{L} (\textbf{v}^{n+1-q}) \text{  в } \partial \Omega
+\end{equation}        
+%
+
+Однако эта система все еще связана, поскольку нам нужно вычислить $\nabla^2 \textbf{v}^{n+1}$. 
+%
+Далее рассматриваем разложение поля скорости $\textbf{v}$ на его безвихревую и соленоидальную компоненты, 
+обозначенные как $\textbf{v}_I$ и $\textbf{v}_S$ соответственно:
+%
+\begin{equation}\label{eq:ksdecompose} 
+    \textbf{v} = \textbf{v}_I + \textbf{v}_S,
+\end{equation}        
+%
+где $\nabla \times \textbf{v}_I = 0$ и $\nabla \cdot \textbf{v}_S = 0$.
+%
+Для несжимаемых потоков безвихревая часть $\textbf{v}_I$ удобно обращается в нуль.
+%
+Используя это разложение и тождество $\nabla^2 \textbf{v}^{n+1} = 
+\nabla(\nabla \cdot \textbf{v}^{n+1}) - \nabla \times (\nabla \times \textbf{v}^{n+1})$,
+показанное в (\ref{eq:linear}), можно переписать $\nabla^2 \textbf{v}^{n+1}$ в виде:
+%
+%
+\begin{equation}\label{eq:kslaplacev} 
+    \nabla^2 \textbf{v}^{n+1} = - \nabla \times (\nabla \times \textbf{v}^{n+1}),
+\end{equation}        
+%
+так как $\textbf{v}_I = 0$ для несжимаемых жидкостей.
+%
+Теперь можно аппроксимировать это уравнение явной схемой, что приводит к окончательному уравнению Пуассона 
+для давления:
+%
+%
+\begin{equation}\label{eq:kspoissonfinal} 
+    \nabla^2 \overline{p}^{n+1} = \nabla \cdot (\frac{\Hat{\textbf{v}}}{\Delta t}) +
+    \sum_{q=0}^{J_e-1} \beta_q (-\nabla \times (\nabla \times \textbf{v}^{n-q})), \text{  в } \partial \Omega
+\end{equation}        
+%
+
+Теперь есть почти все инструменты, необходимые для решения системы. 
+%
+Сначала мы используем (\ref{eq:ks1}), чтобы получить нелинейные члены, 
+затем используем их для вычисления давления на следующем временном шаге в 
+соответствии с (\ref{eq:kspoissonfinal}), и, наконец, используем вычисленное поле давления 
+для решения уравнения Гельмгольца для скорости в (\ref{eq:ks3}). 
+%
+Разделение уравнения давления и скорости является ключевым в схеме Карниадакиса и используется в Nek5000. 
+%
+
+Однако описанные здесь шаги недостаточны для получения решения. 
+%
+Хотя граничные условия для скорости и были заданы, граничные условия для давления являются открытым вопросом. 
+%
+Наложение правильных граничных условий для уравнения Пуассона для давления (\ref{eq:kspoissonfinal}) 
+чрезвычайно важно для точности этого метода, и мы рассмотрим это далее.
+
+\section{Граничные условия для давления}
+%
+
+Наложение подходящего граничного условия на уравнение Пуассона для давления в (\ref{eq:kspoissonfinal}) 
+является нетривиальной задачей. 
+%
+Для этого сначала получается граничное условие для давления из полудискретной формулировки, 
+а затем аппроксимируются неизвестные неявные члены с помощью схемы высокого порядка экстраполяции. 
+%
+Решение полудискретной формы в (\ref{eq:sheme}) для $\nabla \overline{p}^{n+1}$ дает:
+%
+\begin{equation}\label{eq:prbc1} 
+    \nabla \overline{p}^{n+1} = - \frac{\gamma_0 \textbf{v}^{n+1} - 
+    \sum_{q=0}^{J_i-1} \alpha_q \textbf{v}^{n-q}}{\Delta t} 
+    + \nu \gamma_0 \textbf{L}(\textbf{v}^{n+1}) + 
+    \nu \sum_{q=1}^{J_i-1} \gamma_q \textbf{L}(\textbf{v}^{n+1-q}) +
+    \sum_{q=0}^{J_e-1} \beta_q \textbf{N}{\textbf{v}^{n-q}},
+\end{equation}    
+%
+где первый член линейной слагаемого вынесен за пределы суммирования. 
+%
+При этом оба суммирования явно известны, так как они зависят только от скоростей до временного шага $n$. 
+%
+Затем, взяв частную производную от (ref{eq:prbc1}) по нормали к поверхности на границе, получаем:
+%
+%
+\begin{equation}\label{eq:prbc2} 
+    \nabla \overline{p}^{n+1} = -\textbf{n} \cdot (frac{\gamma_0 \textbf{v}^{n+1} - 
+    \sum_{q=0}^{J_i-1} \alpha_q \textbf{v}^{n-q}}{\Delta t}) +
+    nu \gamma_0 (\textbf{n} \cdot \textbf{L}(\textbf{v}^{n+1})) +
+    \textbf{n} \cdot (\nu \sum_{q=1}^{J_i-1} \gamma_q \textbf{L}(\textbf{v}^{n+1-q}) +
+    \sum_{q=0}^{J_e-1} \beta_q \textbf{N}{\textbf{v}^{n-q}}), \text{ на } \partial \Omega
+\end{equation}    
+%
+Благодаря граничным условиям Дирихле можно считать что первое и последнее слагаемое в правой части
+(\ref{eq:prbc2}) нам известны.
+%
+Сложность состоит в вычислении $\textbf{L}(\textbf{v}^{n+1}) = \nabla(\nabla \cdot
+\textbf{v}^{n+1}) - \nabla \times {\nabla \times \textbf{v}^{n+1}} = \nabla Q^{n+1} -
+\nabla \times {\nabla \times \textbf{v}^{n+1}}$, так как $\textbf{v}^{n+1}$ неизвестно.
+
+
+%
+
 
 
 % % \chapter{Оформление различных элементов}\label{ch:ch1}
